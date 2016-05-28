@@ -11,24 +11,28 @@
 
 class LR: public SGD{
 public:
-
+    LR();
 private:
-    size_t MAX_EPOCH = 50;
-    float THRESH_CONVERGE = 10;
-    float ALPHA = 1;
-
     float _p(const feature_t& X);
     float _cost(const feature_t& X, float y);
     float _tot_cost();
+    weight_t _derived(const feature_t& X, float y);
 };
+
+LR::LR() {
+    MAX_EPOCH = 50;
+    THRESH_CONVERGE = 0.00001;
+    ALPHA = 0.1;
+}
 
 float LR::_p(const feature_t &X) {
     float z = bias + dot_product(weight, X);
-    return (float) sigmoid(z);
+    float p = (float) sigmoid(z);
+    return p;
 }
 
 float LR::_cost(const feature_t &X, float y) {
-    return (float) (-y * log(_p(X)) - (1 - y) * log(1 - _p(X)));
+    return (float) -(y * log(_p(X) + 0.0001) + (1 - y) * log(1 - _p(X) + 0.0001));
 }
 
 float LR::_tot_cost() {
@@ -38,6 +42,14 @@ float LR::_tot_cost() {
     return tot_cost;
 }
 
+weight_t LR::_derived(const feature_t& X, float y) {
+    weight_t diff;
+    double d = y - _p(X);
+    for (auto p : X) {
+        diff[p.first] += d * p.second;
+    }
+    return diff;
+}
 
 
 

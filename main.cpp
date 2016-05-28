@@ -6,6 +6,9 @@ using namespace std;
 
 int main() {
     LR lr;
-    lr.load_data("/Users/wuxian/Documents/a1a");
+    lr.load_train_data("data/a1a.t");
+    lr.load_test_data("data/a1a");
+    lr.train();
+    lr.test();
     return 0;
 }

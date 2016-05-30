@@ -12,6 +12,7 @@
 #include "limonp/Logging.hpp"
 
 double sigmoid(float z) {
+    // XCHECK(!isnan(z));
     return 1.0 / (1 + exp(-z));
 }
 
@@ -28,8 +29,9 @@ template <typename K, typename T>
 T dot_product(const std::unordered_map<K, T>& a, const std::unordered_map<K, T>& b) {
     T ret = 0;
     for (auto p : a)
-        if (b.find(p.first) != b.end())
+        if (b.find(p.first) != b.end()) {
             ret += p.second * b.at(p.first);
+        }
     return ret;
 }
 

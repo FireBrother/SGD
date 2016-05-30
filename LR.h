@@ -20,14 +20,15 @@ private:
 };
 
 LR::LR() {
-    MAX_EPOCH = 50;
-    THRESH_CONVERGE = 0.00001;
+    MAX_EPOCH = 100;
+    THRESH_CONVERGE = 0.001;
     ALPHA = 0.1;
 }
 
 float LR::_p(const feature_t &X) {
     float z = bias + dot_product(weight, X);
     float p = (float) sigmoid(z);
+    // XCHECK(!isnan(p));
     return p;
 }
 
@@ -44,7 +45,7 @@ float LR::_tot_cost() {
 
 weight_t LR::_derived(const feature_t& X, float y) {
     weight_t diff;
-    double d = y - _p(X);
+    double d = _p(X) - y;
     for (auto p : X) {
         diff[p.first] += d * p.second;
     }

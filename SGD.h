@@ -29,8 +29,8 @@ public:
 protected:
     std::vector<float> y_s;
     std::vector<feature_t> X_s;
-    std::vector<float> y_train_s;
-    std::vector<feature_t> X_train_s;
+    std::vector<float> y_test_s;
+    std::vector<feature_t> X_test_s;
     weight_t weight;
     float bias;
 
@@ -60,7 +60,7 @@ void SGD::load_test_data(std::string filename) {
     XLOG(INFO) << "Load test data from " << filename;
     const time_t st = time(NULL);
     int n;
-    std::tie(X_train_s, y_train_s, n) = _load_data(filename);
+    std::tie(X_test_s, y_test_s, n) = _load_data(filename);
     const time_t et = time(NULL);
     XLOG(INFO) << string_format("Load test data finished, %d records loaded: %ds.", n, et-st);
 }
@@ -97,32 +97,32 @@ std::tuple<std::vector<feature_t>, std::vector<float>, int> SGD::_load_data(std:
 }
 
 void SGD::_init_weight() {
+    srand((unsigned int) time(NULL));
     bias = 0;
     for (auto X : X_s)
         for (auto p : X)
-            weight[p.first] = 0;
+            weight[p.first] = (float) (1.0 * (rand() % 1000) / 100000);
 }
 
 void SGD::train() {
     XLOG(INFO) << string_format("Train: MAX_EPOCH=%d, THRESH_CONVERGE=%f, ALPHA=%f",
                                 MAX_EPOCH, THRESH_CONVERGE, ALPHA);
     const time_t st = time(NULL);
+    _init_weight();
     float alpha = ALPHA;
     size_t epoch = 0;
     float cvg;
     float tot_cost = _tot_cost();
-    _init_weight();
     while (true) {
         epoch++;
         XLOG(INFO) << string_format("epoch: %d, cost=%f, alpha=%f", epoch, tot_cost, alpha);
         for (size_t i = 0; i < X_s.size(); i++) {
             weight_t diff = _derived(X_s[i], y_s[i]);
+            float mod = (float) sqrt(dot_product(diff, diff) + 0.00000001);
             for (auto p : diff) {
-                weight[p.first] += alpha * p.second;
+                weight[p.first] -= alpha * p.second / mod;
             }
         }
-        alpha *= 0.95;
-
         float temp_cost = tot_cost;
         tot_cost = _tot_cost();
         cvg = (float) fabs(tot_cost - temp_cost);
@@ -140,15 +140,15 @@ void SGD::train() {
 }
 
 float SGD::test() {
-    XLOG(INFO) << string_format("Test: num=%d.", X_train_s.size());
+    XLOG(INFO) << string_format("Test: num=%d.", X_test_s.size());
     const time_t st = time(NULL);
     int c = 0;
-    for (size_t i = 0; i < X_train_s.size(); i++) {
-        float p = _p(X_train_s[i]);
-        float y_star = p >= 0.5 ? 1.0 : 0.0;
-        if (y_star == y_s[i]) c++;
+    for (size_t i = 0; i < X_test_s.size(); i++) {
+        float p = _p(X_test_s[i]);
+        float y_star = (float) (p >= 0.5 ? 1.0 : 0.0);
+        if (y_star == y_test_s[i]) c++;
     }
-    float acc = 1.0 * c / X_train_s.size();
+    float acc = (float) (1.0 * c / X_test_s.size());
     const time_t et = time(NULL);
     XLOG(INFO) << string_format("Testing finished, acc=%f%%: %ds.", acc * 100, et-st);
     return acc;

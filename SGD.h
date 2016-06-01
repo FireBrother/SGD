@@ -143,13 +143,23 @@ float SGD::test() {
     XLOG(INFO) << string_format("Test: num=%d.", X_test_s.size());
     const time_t st = time(NULL);
     int c = 0;
+    int tp = 0, tn = 0, fp = 0, fn = 0;
     for (size_t i = 0; i < X_test_s.size(); i++) {
         float p = _p(X_test_s[i]);
         float y_star = (float) (p >= 0.5 ? 1.0 : 0.0);
         if (y_star == y_test_s[i]) c++;
+        if (y_star == 1.0 && y_test_s[i] == 1.0) tp++;
+        else if (y_star == 1.0 && y_test_s[i] == 0.0) fp++;
+        else if (y_star == 0.0 && y_test_s[i] == 1.0) fn++;
+        else if (y_star == 0.0 && y_test_s[i] == 0.0) tn++;
     }
     float acc = (float) (1.0 * c / X_test_s.size());
+    float p, r, f;
+    p = (float) (1.0 * tp / (tp + fp));
+    r = (float) (1.0 * tp / (tp + fn));
+    f = (float) (2.0 * p * r / (p + r));
     const time_t et = time(NULL);
+    XLOG(INFO) << string_format("precision=%f%%, recall=%f%%, f-measure=%f", p * 100, r * 100, f);
     XLOG(INFO) << string_format("Testing finished, acc=%f%%: %ds.", acc * 100, et-st);
     return acc;
 }

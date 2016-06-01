@@ -9,6 +9,7 @@
 #include <cmath>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 #include "limonp/Logging.hpp"
 
 double sigmoid(float z) {

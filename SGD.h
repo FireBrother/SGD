@@ -25,6 +25,7 @@ public:
     SGD() {};
     void train();
     float test();
+    float predict(const feature_t &X);
 
 protected:
     std::vector<float> y_s;
@@ -45,6 +46,7 @@ protected:
     virtual float _cost(const feature_t& X, float y) = 0;
     virtual float _tot_cost() = 0;
     virtual weight_t _derived(const feature_t& X, float y) = 0;
+
 };
 
 void SGD::load_train_data(std::string filename) {
@@ -147,8 +149,7 @@ float SGD::test() {
     int c = 0;
     int tp = 0, tn = 0, fp = 0, fn = 0;
     for (size_t i = 0; i < X_test_s.size(); i++) {
-        float p = _p(X_test_s[i]);
-        float y_star = (float) (p >= 0.5 ? 1.0 : 0.0);
+        float y_star = predict(X_test_s[i]);
         if (y_star == y_test_s[i]) c++;
         if (y_star == 1.0 && y_test_s[i] == 1.0) tp++;
         else if (y_star == 1.0 && y_test_s[i] == 0.0) fp++;
@@ -165,5 +166,11 @@ float SGD::test() {
     XLOG(INFO) << string_format("Testing finished, acc=%f%%: %ds.", acc * 100, et-st);
     return acc;
 }
+
+float SGD::predict(const feature_t& X) {
+    float p = _p(X);
+    return (float) (p >= 0.0 ? 1.0 : 0.0);
+}
+
 
 #endif //SGD_H

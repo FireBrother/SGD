@@ -169,7 +169,7 @@ float SGD::test() {
 
 float SGD::predict(const feature_t& X) {
     float p = _p(X);
-    return (float) (p >= 0.0 ? 1.0 : 0.0);
+    return (float) (p >= 0.5 ? 1.0 : 0.0);
 }
 
 

@@ -131,7 +131,7 @@ void SGD::train() {
             }
             weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
             for (auto p : diff) {
-                weight[p.first] = weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]);
+                weight[p.first] = (float) (weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]));
             }
         }
         float temp_cost = tot_cost;

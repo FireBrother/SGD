@@ -114,8 +114,8 @@ void SGD::train() {
     float cvg;
     float tot_cost = _tot_cost();
     while (true) {
+        const time_t ep_st = time(NULL);
         epoch++;
-        XLOG(INFO) << string_format("epoch: %d, cost=%f, alpha=%f", epoch, tot_cost, alpha);
         for (size_t i = 0; i < X_s.size(); i++) {
             weight_t diff = _derived(X_s[i], y_s[i]);
             float mod = (float) sqrt(dot_product(diff, diff) + 0.00000001);
@@ -126,6 +126,8 @@ void SGD::train() {
         float temp_cost = tot_cost;
         tot_cost = _tot_cost();
         cvg = (float) fabs(tot_cost - temp_cost);
+        const time_t ep_et = time(NULL);
+        XLOG(INFO) << string_format("epoch: %d, cost=%f, alpha=%f: %ds", epoch, tot_cost, alpha, ep_et-ep_st);
         if (cvg < THRESH_CONVERGE) {
             XLOG(INFO) << "The cost function has converged: cvg=" << cvg;
             break;

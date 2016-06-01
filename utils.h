@@ -29,9 +29,11 @@ T dot_product(const std::vector<T>& a, const std::vector<T>& b) {
 template <typename K, typename T>
 T dot_product(const std::unordered_map<K, T>& a, const std::unordered_map<K, T>& b) {
     T ret = 0;
-    for (auto p : a)
-        if (b.find(p.first) != b.end()) {
-            ret += p.second * b.at(p.first);
+    const std::unordered_map<K, T>& c = a.size() > b.size() ? b : a;
+    const std::unordered_map<K, T>& d = a.size() > b.size() ? a : b;
+    for (auto p : c)
+        if (d.find(p.first) != d.end()) {
+            ret += p.second * d.at(p.first);
         }
     return ret;
 }

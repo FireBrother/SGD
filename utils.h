@@ -14,6 +14,9 @@
 
 double sigmoid(float z) {
     // XCHECK(!isnan(z));
+    static float overflow = 20.0;
+    z = (float) fmin(overflow, z);
+    z = (float) fmax(-overflow, z);
     return 1.0 / (1 + exp(-z));
 }
 

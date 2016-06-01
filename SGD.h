@@ -33,14 +33,15 @@ protected:
     std::vector<float> y_test_s;
     std::vector<feature_t> X_test_s;
     weight_t weight;
-    float bias;
+    float weight0;
 
     size_t MAX_EPOCH = 50;
-    float THRESH_CONVERGE = 0.01;
-    float ALPHA = 1;
+    float THRESH_CONVERGE = 0.001;
+    float ALPHA = 0.1;
+    float LAMBDA = 0.1;
 
     void _init_weight();
-    std::tuple<std::vector<feature_t>, std::vector<float>, int> _load_data(std::string filename);
+    std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> _load_data(std::string filename);
 
     virtual float _p(const feature_t& X) = 0;
     virtual float _cost(const feature_t& X, float y) = 0;
@@ -52,22 +53,22 @@ protected:
 void SGD::load_train_data(std::string filename) {
     XLOG(INFO) << "Load train data from " << filename;
     const time_t st = time(NULL);
-    int n;
-    std::tie(X_s, y_s, n) = _load_data(filename);
+    int n, npos, nneg;
+    std::tie(X_s, y_s, n, npos, nneg) = _load_data(filename);
     const time_t et = time(NULL);
-    XLOG(INFO) << string_format("Load train data finished, %d records loaded: %ds.", n, et-st);
+    XLOG(INFO) << string_format("Load train data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
 }
 
 void SGD::load_test_data(std::string filename) {
     XLOG(INFO) << "Load test data from " << filename;
     const time_t st = time(NULL);
-    int n;
-    std::tie(X_test_s, y_test_s, n) = _load_data(filename);
+    int n, npos, nneg;
+    std::tie(X_test_s, y_test_s, n, npos, nneg) = _load_data(filename);
     const time_t et = time(NULL);
-    XLOG(INFO) << string_format("Load test data finished, %d records loaded: %ds.", n, et-st);
+    XLOG(INFO) << string_format("Load test data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
 }
 
-std::tuple<std::vector<feature_t>, std::vector<float>, int> SGD::_load_data(std::string filename) {
+std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> SGD::_load_data(std::string filename) {
     std::vector<float> y_s;
     std::vector<feature_t> X_s;
     std::ifstream fin(filename);
@@ -75,14 +76,18 @@ std::tuple<std::vector<feature_t>, std::vector<float>, int> SGD::_load_data(std:
         XLOG(FATAL) << "Cannot open file " << filename;
     }
     std::string buff;
-    int n = 0;
+    int n = 0, npos = 0, nneg = 0;
     while (std::getline(fin, buff)) {
         n++;
         std::vector<std::string> temp;
         limonp::Split(buff, temp, " ");
         XCHECK(temp.size() > 0);
         float y = std::stof(temp[0]);
-        if (y == -1) y = 0;
+        if (y == 1) npos++;
+        else {
+            y = 0;
+            nneg++;
+        }
         feature_t X;
         for (size_t i = 1; i < temp.size(); i++) {
             std::vector<std::string> p;
@@ -95,12 +100,12 @@ std::tuple<std::vector<feature_t>, std::vector<float>, int> SGD::_load_data(std:
         y_s.push_back(y);
         X_s.push_back(X);
     }
-    return make_tuple(X_s, y_s, n);
+    return make_tuple(X_s, y_s, n, npos, nneg);
 }
 
 void SGD::_init_weight() {
     srand((unsigned int) time(NULL));
-    bias = 0;
+    weight0 = 0;
     for (auto X : X_s)
         for (auto p : X)
             weight[p.first] = (float) (1.0 * (rand() % 1000) / 100000);
@@ -115,14 +120,18 @@ void SGD::train() {
     size_t epoch = 0;
     float cvg;
     float tot_cost = _tot_cost();
+    std::unordered_map<size_t, float> G;
     while (true) {
         const time_t ep_st = time(NULL);
         epoch++;
         for (size_t i = 0; i < X_s.size(); i++) {
             weight_t diff = _derived(X_s[i], y_s[i]);
-            float mod = (float) sqrt(dot_product(diff, diff) + 0.00000001);
             for (auto p : diff) {
-                weight[p.first] -= alpha * p.second / mod;
+                G[p.first] += p.second * p.second;
+            }
+            weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
+            for (auto p : diff) {
+                weight[p.first] = weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]);
             }
         }
         float temp_cost = tot_cost;

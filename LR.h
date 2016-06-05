@@ -46,7 +46,7 @@ weight_t LR::_derived(const feature_t& X, float y) {
     weight_t diff;
     double d = _p(X) - y;
     for (auto p : X) {
-        diff[p.first] += (y == 1.0 ? 1.5 : 1) * d * p.second;
+        diff[p.first] += (y == 1.0 ? 1 : 1) * d * p.second;
     }
     return diff;
 }

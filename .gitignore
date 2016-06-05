@@ -29,3 +29,4 @@
 
 .DS_Store
 /data/*
+!/data/eval.py

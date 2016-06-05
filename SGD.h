@@ -35,10 +35,10 @@ protected:
     weight_t weight;
     float weight0;
 
-    size_t MAX_EPOCH = 50;
+    size_t MAX_EPOCH = 3;
     float THRESH_CONVERGE = 0.001;
     float ALPHA = 0.1;
-    float LAMBDA = 0.1;
+    float LAMBDA = 1;
 
     void _init_weight();
     std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> _load_data(std::string filename);
@@ -107,8 +107,9 @@ void SGD::_init_weight() {
     srand((unsigned int) time(NULL));
     weight0 = 0;
     for (auto X : X_s)
-        for (auto p : X)
-            weight[p.first] = (float) (1.0 * (rand() % 1000) / 100000);
+        for (auto p : X) {
+            weight[p.first] = (float) (1.0 * (rand() % 1000) / 1000000 - 0.0005) ;
+        }
 }
 
 void SGD::train() {
@@ -129,9 +130,9 @@ void SGD::train() {
             for (auto p : diff) {
                 G[p.first] += p.second * p.second;
             }
-            weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
+            //weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
             for (auto p : diff) {
-                weight[p.first] = (float) (weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]));
+                weight[p.first] = (float) (weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]+0.0000001));
             }
         }
         float temp_cost = tot_cost;
@@ -149,6 +150,7 @@ void SGD::train() {
         }
     }
     const time_t et = time(NULL);
+    XLOG(INFO) << string_format("weight0=%f", weight0);
     XLOG(INFO) << string_format("Training finished, cost=%f: %ds.", _tot_cost(), et-st);
 }
 
@@ -178,6 +180,7 @@ float SGD::test() {
 
 float SGD::predict(const feature_t& X) {
     float p = _p(X);
+    //XLOG(INFO) << p;
     return (float) (p >= 0.5 ? 1.0 : 0.0);
 }
 

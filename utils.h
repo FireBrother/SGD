@@ -13,7 +13,8 @@
 #include "limonp/Logging.hpp"
 
 double sigmoid(float z) {
-    // XCHECK(!isnan(z));
+    XCHECK(!isnan(z));
+    //XLOG(INFO) << z;
     static float overflow = 10.0;
     z = (float) fmin(overflow, z);
     z = (float) fmax(-overflow, z);

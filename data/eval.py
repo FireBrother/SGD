@@ -1,5 +1,5 @@
-r1 = open('a2a.t').readlines()
-r2 = open('a2a.s').readlines()
+r1 = open('a1a.t').readlines()
+r2 = open('a1a.s').readlines()
 tp, tn, fp, fn = 0, 0, 0, 0
 for i in xrange(len(r1)):
     y_star = float(r2[i].split()[0])

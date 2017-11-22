@@ -28,5 +28,5 @@
 *.app
 
 .DS_Store
-/data/*
+# /data/*
 !/data/eval.py

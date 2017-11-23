@@ -35,7 +35,7 @@ protected:
     weight_t weight;
     float weight0;
 
-    size_t MAX_EPOCH = 3;
+    size_t MAX_EPOCH = 10;
     float THRESH_CONVERGE = 0.001;
     float ALPHA = 0.1;
     float LAMBDA = 1;
@@ -121,18 +121,14 @@ void SGD::train() {
     size_t epoch = 0;
     float cvg;
     float tot_cost = _tot_cost();
-    std::unordered_map<size_t, float> G;
     while (true) {
         const time_t ep_st = time(NULL);
         epoch++;
         for (size_t i = 0; i < X_s.size(); i++) {
             weight_t diff = _derived(X_s[i], y_s[i]);
+            weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
             for (auto p : diff) {
-                G[p.first] += p.second * p.second;
-            }
-            //weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
-            for (auto p : diff) {
-                weight[p.first] = (float) (weight[p.first] * (1 - alpha * LAMBDA / X_s.size()) - alpha * p.second / sqrt(G[p.first]+0.0000001));
+                weight[p.first] -= alpha * p.second;
             }
         }
         float temp_cost = tot_cost;

@@ -35,22 +35,22 @@ protected:
     weight_t weight;
     float weight0;
 
+    // 最大轮数、收敛阈值和学习率
     size_t MAX_EPOCH = 10;
     float THRESH_CONVERGE = 0.001;
     float ALPHA = 0.1;
-    float LAMBDA = 1;
 
     void _init_weight();
     std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> _load_data(std::string filename);
 
-    virtual float _p(const feature_t& X) = 0;
-    virtual float _cost(const feature_t& X, float y) = 0;
+    virtual float _p(const feature_t& X) = 0;   // p(y|x)的值
+    virtual float _cost(const feature_t& X, float y) = 0; // 给定一对样本，计算loss
     virtual float _tot_cost() = 0;
-    virtual weight_t _derived(const feature_t& X, float y) = 0;
+    virtual weight_t _derived(const feature_t& X, float y) = 0; // 给定一对样本，计算梯度
 
 };
 
-void SGD::load_train_data(std::string filename) {
+void SGD::load_train_data(const std::string filename) {
     XLOG(INFO) << "Load train data from " << filename;
     const time_t st = time(NULL);
     int n, npos, nneg;
@@ -59,7 +59,7 @@ void SGD::load_train_data(std::string filename) {
     XLOG(INFO) << string_format("Load train data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
 }
 
-void SGD::load_test_data(std::string filename) {
+void SGD::load_test_data(const std::string filename) {
     XLOG(INFO) << "Load test data from " << filename;
     const time_t st = time(NULL);
     int n, npos, nneg;
@@ -68,7 +68,7 @@ void SGD::load_test_data(std::string filename) {
     XLOG(INFO) << string_format("Load test data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
 }
 
-std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> SGD::_load_data(std::string filename) {
+std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> SGD::_load_data(const std::string filename) {
     std::vector<float> y_s;
     std::vector<feature_t> X_s;
     std::ifstream fin(filename);
@@ -124,6 +124,7 @@ void SGD::train() {
     while (true) {
         const time_t ep_st = time(NULL);
         epoch++;
+        // 每接受一对样本，执行一次梯度下降
         for (size_t i = 0; i < X_s.size(); i++) {
             weight_t diff = _derived(X_s[i], y_s[i]);
             weight0 -= alpha * (_p(X_s[i]) - y_s[i]);
@@ -131,6 +132,7 @@ void SGD::train() {
                 weight[p.first] -= alpha * p.second;
             }
         }
+        // 计算当前模型的loss
         float temp_cost = tot_cost;
         tot_cost = _tot_cost();
         cvg = (float) fabs(tot_cost - temp_cost);

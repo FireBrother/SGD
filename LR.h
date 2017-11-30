@@ -23,6 +23,7 @@ LR::LR() {
 
 }
 
+// LR的p(y|x)，sigmoid(-w*x)
 float LR::_p(const feature_t &X) {
     float z = weight0 + dot_product(weight, X);
     float p = (float) sigmoid(z);

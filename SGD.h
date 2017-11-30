@@ -20,8 +20,8 @@ typedef std::unordered_map<size_t, float> weight_t;
 
 class SGD {
 public:
-    void load_train_data(std::string filename);
-    void load_test_data(std::string filename);
+    void load_train_data(const std::string &img_filename, const std::string &label_filename);
+    void load_test_data(const std::string &img_filename, const std::string &label_filename);
     SGD() {};
     void train();
     float test();
@@ -41,7 +41,8 @@ protected:
     float ALPHA = 0.1;
 
     void _init_weight();
-    std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> _load_data(std::string filename);
+    std::tuple<std::vector<feature_t>, std::vector<float> > _load_data(const std::string &img_filename,
+                                                                       const std::string &label_filename);
 
     virtual float _p(const feature_t& X) = 0;   // p(y|x)的值
     virtual float _cost(const feature_t& X, float y) = 0; // 给定一对样本，计算loss
@@ -50,57 +51,64 @@ protected:
 
 };
 
-void SGD::load_train_data(const std::string filename) {
-    XLOG(INFO) << "Load train data from " << filename;
+void SGD::load_train_data(const std::string &img_filename, const std::string &label_filename) {
+    XLOG(INFO) << "Load train data from " << img_filename;
     const time_t st = time(NULL);
-    int n, npos, nneg;
-    std::tie(X_s, y_s, n, npos, nneg) = _load_data(filename);
+    std::tie(X_s, y_s) = _load_data(img_filename, label_filename);
     const time_t et = time(NULL);
-    XLOG(INFO) << string_format("Load train data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
+    XLOG(INFO) << string_format("Load train data finished, %d records loaded: %ds.", X_s.size(), et-st);
 }
 
-void SGD::load_test_data(const std::string filename) {
-    XLOG(INFO) << "Load test data from " << filename;
+void SGD::load_test_data(const std::string &img_filename, const std::string &label_filename) {
+    XLOG(INFO) << "Load test data from " << img_filename;
     const time_t st = time(NULL);
-    int n, npos, nneg;
-    std::tie(X_test_s, y_test_s, n, npos, nneg) = _load_data(filename);
+    std::tie(X_test_s, y_test_s) = _load_data(img_filename, label_filename);
     const time_t et = time(NULL);
-    XLOG(INFO) << string_format("Load test data finished, %d(%d pos, %d neg) records loaded: %ds.", n, npos, nneg, et-st);
+    XLOG(INFO) << string_format("Load test data finished, %d records loaded: %ds.", X_test_s.size(), et-st);
 }
 
-std::tuple<std::vector<feature_t>, std::vector<float>, int, int, int> SGD::_load_data(const std::string filename) {
+std::tuple<std::vector<feature_t>, std::vector<float> > SGD::_load_data(const std::string &img_filename,
+                                                                                      const std::string &label_filename) {
     std::vector<float> y_s;
     std::vector<feature_t> X_s;
-    std::ifstream fin(filename);
-    if (!fin) {
-        XLOG(FATAL) << "Cannot open file " << filename;
+    std::ifstream img_fin(img_filename, std::ios::binary|std::ios::in);
+    std::ifstream label_fin(label_filename, std::ios::binary|std::ios::in);
+    if (!img_fin) {
+        XLOG(FATAL) << "Cannot open file " << img_filename;
     }
-    std::string buff;
-    int n = 0, npos = 0, nneg = 0;
-    while (std::getline(fin, buff)) {
-        n++;
-        std::vector<std::string> temp;
-        limonp::Split(buff, temp, " ");
-        XCHECK(temp.size() > 0);
-        float y = std::stof(temp[0]);
-        if (y == 1) npos++;
-        else {
-            y = 0;
-            nneg++;
-        }
-        feature_t X;
-        for (size_t i = 1; i < temp.size(); i++) {
-            std::vector<std::string> p;
-            limonp::Split(temp[i], p, ":");
-            XCHECK(p.size() == 2);
-            size_t k = std::stoul(p[0]);
-            float v = std::stof(p[1]);
-            X[k] = v;
-        }
-        y_s.push_back(y);
-        X_s.push_back(X);
+    if (!label_fin) {
+        XLOG(FATAL) << "Cannot open file " << label_filename;
     }
-    return make_tuple(X_s, y_s, n, npos, nneg);
+    int magic;
+    int num_items;
+    int num_rows, num_cols;
+    img_fin.read((char*)&magic, sizeof(magic));
+    std::reverse((char*)&magic, (char*)&magic+sizeof(magic));
+    img_fin.read((char*)&num_items, sizeof(num_items));
+    std::reverse((char*)&num_items, (char*)&num_items+sizeof(num_items));
+    img_fin.read((char*)&num_rows, sizeof(num_rows));
+    std::reverse((char*)&num_rows, (char*)&num_rows+sizeof(num_rows));
+    img_fin.read((char*)&num_cols, sizeof(num_cols));
+    std::reverse((char*)&num_cols, (char*)&num_cols+sizeof(num_cols));
+
+    label_fin.read((char*)&magic, sizeof(magic));
+    std::reverse((char*)&magic, (char*)&magic+sizeof(magic));
+    label_fin.read((char*)&num_items, sizeof(num_items));
+    std::reverse((char*)&num_items, (char*)&num_items+sizeof(num_items));
+    for (int i = 0; i < num_items; i++) {
+        unsigned char buff;
+        feature_t x;
+        for (int j = 0; j < num_rows; j++) {
+            for (int k = 0; k < num_cols; k++) {
+                img_fin.read((char*)&buff, sizeof(buff));
+                x[j*num_cols+k] = float(buff);
+            }
+        }
+        label_fin.read((char*)&buff, sizeof(buff));
+        X_s.push_back(x);
+        y_s.push_back(float(buff) == 3 ? 1 : 0);
+    }
+    return std::make_tuple(X_s, y_s);
 }
 
 void SGD::_init_weight() {
@@ -108,7 +116,7 @@ void SGD::_init_weight() {
     weight0 = 0;
     for (auto X : X_s)
         for (auto p : X) {
-            weight[p.first] = (float) (1.0 * (rand() % 1000) / 1000000 - 0.0005) ;
+            weight[p.first] = (float) (1.0 * (rand() % 1000) / 1000 - 0.5) ;
         }
 }
 

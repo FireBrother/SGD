@@ -8,6 +8,7 @@
 
 #include "SGD.h"
 #include "utils.h"
+#include <iostream>
 
 class LR: public SGD{
 public:
